@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ficha de Vistoria — Template Notion</title>
+<style>
+  :root {
+    --eng: #1F3864;
+    --eng-light: #EEF3FB;
+    --eng-mid: #2E5FA3;
+    --krm: #1A3C2E;
+    --krm-light: #EDF7F2;
+    --krm-mid: #2D6A4F;
+    --bg: #F7F6F3;
+    --white: #FFFFFF;
+    --border: #E3E2DF;
+    --text: #37352F;
+    --sub: #6B6966;
+    --check-on: #2DA44E;
+    --nc: #E5534B;
+    --na: #986801;
+    --font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
+  
+  /* Layout */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 240px; background: #FBFAF9; border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; padding: 12px 0; }
+  .main { flex: 1; overflow-y: auto; padding: 40px 48px; max-width: 900px; }
+  
+  /* Sidebar */
+  .sidebar-header { padding: 8px 16px 16px; }
+  .sidebar-header h2 { font-size: 13px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: .04em; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 5px 16px; cursor: pointer; border-radius: 4px; margin: 1px 8px; font-size: 13px; color: var(--sub); transition: background .1s; }
+  .nav-item:hover { background: #EFEFEF; color: var(--text); }
+  .nav-item.active { background: #E3E2DF; color: var(--text); font-weight: 600; }
+  .nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .nav-divider { height: 1px; background: var(--border); margin: 8px 16px; }
+  .nav-label { padding: 8px 16px 4px; font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  
+  /* Page header */
+  .page-header { margin-bottom: 32px; }
+  .company-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+  .badge-eng { background: var(--eng-light); color: var(--eng); }
+  .badge-krm { background: var(--krm-light); color: var(--krm); }
+  .page-title { font-size: 32px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .page-subtitle { font-size: 14px; color: var(--sub); }
+  
+  /* Properties block (Notion-style) */
+  .properties { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 28px; }
+  .prop-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .prop-row:last-child { border-bottom: none; }
+  .prop-key { width: 160px; font-size: 13px; color: var(--sub); font-weight: 500; flex-shrink: 0; }
+  .prop-val { flex: 1; }
+  .prop-input { border: none; outline: none; font-family: var(--font); font-size: 13px; color: var(--text); background: transparent; width: 100%; padding: 2px 6px; border-radius: 4px; }
+  .prop-input:focus { background: #F5F5F4; }
+  .prop-select { border: none; outline: none; font-family: var(--font); font-size: 13px; color: var(--text); background: transparent; cursor: pointer; }
+  
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title .num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+  .num-eng { background: var(--eng); }
+  .num-krm { background: var(--krm); }
+  
+  .section-note { font-size: 12px; color: var(--sub); font-style: italic; margin-bottom: 10px; padding: 8px 12px; background: #FBF9F7; border-left: 3px solid var(--border); border-radius: 0 4px 4px 0; }
+  
+  /* Checklist items */
+  .checklist { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .cl-subheader { background: #F0EEF8; padding: 7px 16px; font-size: 12px; font-weight: 700; color: #4A3F8A; text-transform: uppercase; letter-spacing: .04em; }
+  .cl-subheader.green { background: #E8F5EE; color: #1A5C38; }
+  .cl-item { display: flex; align-items: flex-start; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--border); transition: background .1s; }
+  .cl-item:hover { background: #FAFAF9; }
+  .cl-item:first-child { border-top: none; }
+  .cl-item-text { flex: 1; font-size: 13px; line-height: 1.4; }
+  .status-group { display: flex; gap: 6px; flex-shrink: 0; }
+  .status-btn { padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; white-space: nowrap; }
+  .btn-conf { border-color: #2DA44E; color: #2DA44E; }
+  .btn-conf:hover, .btn-conf.active { background: #2DA44E; color: white; }
+  .btn-nc { border-color: #E5534B; color: #E5534B; }
+  .btn-nc:hover, .btn-nc.active { background: #E5534B; color: white; }
+  .btn-na { border-color: #986801; color: #986801; }
+  .btn-na:hover, .btn-na.active { background: #986801; color: white; }
+  .cl-comment { border: none; outline: none; font-family: var(--font); font-size: 12px; color: var(--sub); background: transparent; width: 120px; padding: 2px 4px; border-radius: 4px; }
+  .cl-comment:focus { background: #F5F5F4; width: 200px; }
+  
+  /* RNC table */
+  .rnc-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .rnc-table th { padding: 9px 12px; text-align: left; font-size: 12px; font-weight: 700; color: white; }
+  .rnc-table td { padding: 8px 12px; border-top: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  .rnc-table td input, .rnc-table td select { border: none; outline: none; font-family: var(--font); font-size: 12px; background: transparent; width: 100%; }
+  .rnc-table .status-select { padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  
+  /* Bloco/pavimento grid */
+  .bloco-grid { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; }
+  .bloco-grid table { width: 100%; border-collapse: collapse; }
+  .bloco-grid th { padding: 8px 10px; text-align: center; font-size: 12px; font-weight: 700; color: white; white-space: nowrap; }
+  .bloco-grid td { border: 1px solid var(--border); padding: 6px 8px; }
+  .bloco-grid td.pav-label { font-size: 12px; font-weight: 600; color: var(--sub); white-space: nowrap; }
+  .bloco-grid td input { border: none; outline: none; font-family: var(--font); font-size: 12px; width: 100%; min-width: 80px; }
+  
+  /* Dossiê table */
+  .dossie-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .dossie-table th { padding: 8px 12px; text-align: center; font-size: 12px; font-weight: 700; color: white; }
+  .dossie-table td { border: 1px solid var(--border); padding: 7px 12px; font-size: 12px; }
+  .dossie-table td.label { font-weight: 600; color: var(--sub); background: #FAFAF9; white-space: nowrap; }
+  .dossie-table td input { border: none; outline: none; font-family: var(--font); font-size: 12px; width: 100%; }
+  .dossie-table .sub-row td { background: #F0EEF8; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #4A3F8A; }
+  .dossie-table .sub-row.green td { background: #E8F5EE; color: #1A5C38; }
+  
+  /* Audit note box */
+  .audit-box { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 12px; }
+  .audit-box-header { padding: 10px 16px; font-size: 13px; font-weight: 700; color: white; }
+  .audit-box-body { background: var(--white); padding: 14px 20px; }
+  .audit-item { display: flex; gap: 8px; padding: 5px 0; font-size: 13px; line-height: 1.5; border-bottom: 1px solid var(--border); }
+  .audit-item:last-child { border-bottom: none; }
+  .audit-bullet { color: var(--sub); flex-shrink: 0; }
+  
+  /* REG table */
+  .reg-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .reg-table th { padding: 8px 12px; text-align: left; font-size: 12px; font-weight: 700; color: white; }
+  .reg-table td { border-top: 1px solid var(--border); padding: 7px 12px; font-size: 12px; }
+  .reg-table .reg-code { font-weight: 700; color: var(--eng); white-space: nowrap; }
+  .reg-table tr:nth-child(even) td { background: #F7F9FD; }
+  .reg-table .check-cell { text-align: center; }
+  .reg-table td input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--eng); }
+  .reg-table td input[type=text] { border: none; outline: none; font-family: var(--font); font-size: 12px; width: 100%; background: transparent; }
+  
+  /* Progress bar */
+  .progress-bar { height: 6px; background: #E3E2DF; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .progress-fill.eng { background: var(--eng); }
+  .progress-fill.krm { background: var(--krm); }
+  .progress-label { font-size: 11px; color: var(--sub); margin-top: 3px; }
+  
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 28px; background: #EFEFEE; padding: 3px; border-radius: 8px; width: fit-content; }
+  .tab { padding: 6px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--sub); transition: all .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active-eng { background: white; color: var(--eng); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .tab.active-krm { background: white; color: var(--krm); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  
+  /* Hidden pages */
+  .page { display: none; }
+  .page.active { display: block; }
+  
+  /* Print hint */
+  .print-note { font-size: 11px; color: var(--sub); margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* Botão salvar flutuante */
+  .save-fab { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .save-btn { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 24px; border: none; cursor: pointer; font-family: var(--font); font-size: 14px; font-weight: 700; color: white; box-shadow: 0 4px 16px rgba(0,0,0,.2); transition: all .15s; }
+  .save-btn:active { transform: scale(0.97); }
+  .save-btn.eng { background: var(--eng); }
+  .save-btn.krm { background: var(--krm); }
+  .save-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+  /* Toast de feedback */
+  .toast { position: fixed; bottom: 80px; right: 24px; z-index: 1000; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; color: white; opacity: 0; transform: translateY(8px); transition: all .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok { background: #2DA44E; }
+  .toast.err { background: #E5534B; }
+  
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 24px 20px; }
+    .status-group { flex-direction: column; gap: 3px; }
+    .cl-comment { display: none; }
+  }
+  @media print {
+    .sidebar { display: none; }
+    .tabs { display: none; }
+    body { background: white; }
+    .main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header"><h2>Vistorias</h2></div>
+  <div class="nav-label">Empresa</div>
+  <div class="nav-item active" onclick="showPage('eng')" id="nav-eng">
+    <span class="dot" style="background:#1F3864"></span> ENGEPLAN
+  </div>
+  <div class="nav-item" onclick="showPage('krm')" id="nav-krm">
+    <span class="dot" style="background:#1A3C2E"></span> KRM
+  </div>
+  <div class="nav-divider"></div>
+  <div class="nav-label">Seções</div>
+  <div class="nav-item" onclick="scrollTo('canteiro')">📦 Canteiro</div>
+  <div class="nav-item" onclick="scrollTo('centrais')">⚙️ Centrais</div>
+  <div class="nav-item" onclick="scrollTo('almox')">🏪 Almoxarifado</div>
+  <div class="nav-item" onclick="scrollTo('seg')">⛑️ Segurança</div>
+  <div class="nav-item" onclick="scrollTo('sala')">📁 Sala Técnica</div>
+  <div class="nav-item" onclick="scrollTo('servicos')">🔨 Serviços</div>
+  <div class="nav-item" onclick="scrollTo('dossie')">👷 Dossiê</div>
+  <div class="nav-item" onclick="scrollTo('blocos')">🏗️ Blocos</div>
+  <div class="nav-item" onclick="scrollTo('rnc')">⚠️ RNCs</div>
+  <div class="nav-item" onclick="scrollTo('audit')">📋 Auditoria</div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+
+  <!-- ENGEPLAN PAGE -->
+  <div class="page active" id="page-eng">
+    <div class="page-header">
+      <div class="company-badge badge-eng">🏢 ENGEPLAN</div>
+      <div class="page-title">Ficha de Vistoria de Obras</div>
+      <div class="page-subtitle">Checklist integrado — Uso interno</div>
+    </div>
+
+    <!-- Properties -->
+    <div class="properties">
+      <div class="prop-row"><span class="prop-key">🏗️ Obra</span><div class="prop-val"><input class="prop-input" placeholder="Nome da obra / empreendimento"></div></div>
+      <div class="prop-row"><span class="prop-key">📅 Data</span><div class="prop-val"><input class="prop-input" type="date"></div></div>
+      <div class="prop-row"><span class="prop-key">👤 Responsável</span><div class="prop-val"><input class="prop-input" placeholder="Nome do fiscal"></div></div>
+      <div class="prop-row"><span class="prop-key">🏢 Empresa</span><div class="prop-val"><input class="prop-input" value="ENGEPLAN" readonly></div></div>
+      <div class="prop-row"><span class="prop-key">📊 Progresso</span><div class="prop-val">
+        <div class="progress-bar"><div class="progress-fill eng" id="prog-eng" style="width:0%"></div></div>
+        <div class="progress-label" id="prog-label-eng">0 de 0 itens respondidos</div>
+      </div></div>
+    </div>
+
+    <!-- 1. Canteiro -->
+    <div class="section" id="canteiro">
+      <div class="section-title"><span class="num num-eng">1</span>Inspeção em Canteiro de Obras</div>
+      <div class="checklist">
+        <div class="cl-subheader">Canteiro — Itens Gerais</div>
+        <!-- items injected by JS -->
+      </div>
+    </div>
+
+    <!-- 2. Centrais -->
+    <div class="section" id="centrais">
+      <div class="section-title"><span class="num num-eng">2</span>Centrais de Produção</div>
+      <div class="section-note">Avaliar cada central: Argamassa | Concreto | Armadura | Pré-moldados | Corte de Blocos | Carpintaria</div>
+      <div class="checklist" id="centrais-list">
+        <div class="cl-subheader">Critérios Gerais das Centrais</div>
+      </div>
+    </div>
+
+    <!-- 3. Almoxarifado -->
+    <div class="section" id="almox">
+      <div class="section-title"><span class="num num-eng">3</span>Almoxarifado</div>
+      <div class="checklist" id="almox-list"></div>
+    </div>
+
+    <!-- 4. Segurança -->
+    <div class="section" id="seg">
+      <div class="section-title"><span class="num num-eng">4</span>Segurança do Trabalho</div>
+      <div class="checklist" id="seg-list"></div>
+    </div>
+
+    <!-- 5. Sala Técnica -->
+    <div class="section" id="sala">
+      <div class="section-title"><span class="num num-eng">5</span>Sala Técnica / Documentação da Qualidade</div>
+      <div class="checklist" id="sala-list"></div>
+    </div>
+
+    <!-- 6. Serviços -->
+    <div class="section" id="servicos">
+      <div class="section-title"><span class="num num-eng">6</span>Serviços Controlados em Execução</div>
+      <div class="section-note">Verificar no mínimo 7 serviços. Abrir RNC se necessário. Serviços CAIXA (priorizar): Pintura, Cerâmica, Contrapiso, Pia/Tanque, Armadura, Alvenaria, Impermeabilização, Esquadrias, Forro, Gesso.</div>
+      <div class="checklist" id="servicos-list"></div>
+    </div>
+
+    <!-- 7. Dossiê -->
+    <div class="section" id="dossie">
+      <div class="section-title"><span class="num num-eng">7</span>Amostragem de Dossiê de Funcionários</div>
+      <table class="dossie-table">
+        <thead><tr>
+          <th style="background:var(--eng); text-align:left; min-width:140px">Informações</th>
+          <th style="background:var(--eng)">Func. 1</th><th style="background:var(--eng)">Func. 2</th>
+          <th style="background:var(--eng)">Func. 3</th><th style="background:var(--eng)">Func. 4</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="label">Nome</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Função</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Data de Admissão</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr class="sub-row"><td colspan="5">Status Documental</td></tr>
+          <tr><td class="label">OS</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">ASO</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Normas Regulamentadoras</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Último EPI e data</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr class="sub-row"><td colspan="5">Observações</td></tr>
+          <tr><td colspan="5"><input style="width:100%;border:none;outline:none;font-size:13px;padding:4px" placeholder="Observações gerais..."></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 8. Terceirizados -->
+    <div class="section">
+      <div class="section-title"><span class="num num-eng">8</span>Documentos de Terceirizados</div>
+      <table class="dossie-table">
+        <tbody>
+          <tr><td class="label" style="width:25%">Terceirizado</td><td><input></td><td class="label" style="width:20%">OS</td><td><input></td></tr>
+          <tr><td class="label">Data de Admissão</td><td><input></td><td class="label">ASO</td><td><input></td></tr>
+          <tr><td class="label">Função</td><td><input></td><td class="label">Treinamentos</td><td><input></td></tr>
+          <tr><td class="label">Empresa</td><td><input></td><td class="label"></td><td></td></tr>
+          <tr class="sub-row"><td colspan="4">Observações</td></tr>
+          <tr><td colspan="4"><input style="width:100%;border:none;outline:none;font-size:13px;padding:4px" placeholder="Observações..."></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 9. Blocos -->
+    <div class="section" id="blocos">
+      <div class="section-title"><span class="num num-eng">9</span>Serviços por Bloco e Pavimento</div>
+      <div class="bloco-grid">
+        <table>
+          <thead><tr id="bloco-header-eng"></tr></thead>
+          <tbody id="bloco-body-eng"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 10. RNCs -->
+    <div class="section" id="rnc">
+      <div class="section-title"><span class="num num-eng">10</span>Registro de Não Conformidades (RNCs)</div>
+      <div class="section-note">Abrir RNC com: Requisito descumprido | Descrição da falha | Evidência objetiva</div>
+      <table class="rnc-table">
+        <thead><tr>
+          <th style="background:var(--eng); width:40px">Nº</th>
+          <th style="background:var(--eng)">Requisito</th>
+          <th style="background:var(--eng)">Falha Identificada</th>
+          <th style="background:var(--eng)">Evidência</th>
+          <th style="background:var(--eng); width:120px">Status</th>
+        </tr></thead>
+        <tbody id="rnc-body-eng"></tbody>
+      </table>
+    </div>
+
+    <!-- 11. Auditoria -->
+    <div class="section" id="audit">
+      <div class="section-title"><span class="num num-eng">11</span>Notas de Auditoria Externa — ENGEPLAN</div>
+      <div class="audit-box">
+        <div class="audit-box-header" style="background:var(--eng)">📋 Notas de Auditoria — ENGEPLAN</div>
+        <div class="audit-box-body" id="audit-eng"></div>
+      </div>
+    </div>
+
+    <!-- 12. Registros SGQ -->
+    <div class="section">
+      <div class="section-title"><span class="num num-eng">12</span>Registros SGQ — ENGEPLAN</div>
+      <div class="section-note">Registros obrigatórios do SGQ Engeplan a verificar durante a vistoria.</div>
+      <table class="reg-table">
+        <thead><tr>
+          <th style="background:var(--eng); width:130px">Código</th>
+          <th style="background:var(--eng)">Descrição</th>
+          <th style="background:var(--eng); width:90px; text-align:center">Verificado</th>
+          <th style="background:var(--eng)">Observação</th>
+        </tr></thead>
+        <tbody id="reg-body"></tbody>
+      </table>
+    </div>
+
+    <div class="print-note">Ficha de Vistoria — ENGEPLAN | Versão 02 | Uso Interno | Template Notion</div>
+  </div>
+
+  <!-- KRM PAGE -->
+  <div class="page" id="page-krm">
+    <div class="page-header">
+      <div class="company-badge badge-krm">🏗️ KRM</div>
+      <div class="page-title">Ficha de Vistoria de Obras</div>
+      <div class="page-subtitle">Checklist integrado — Uso interno</div>
+    </div>
+
+    <div class="properties">
+      <div class="prop-row"><span class="prop-key">🏗️ Obra</span><div class="prop-val"><input class="prop-input" placeholder="Nome da obra / empreendimento"></div></div>
+      <div class="prop-row"><span class="prop-key">📅 Data</span><div class="prop-val"><input class="prop-input" type="date"></div></div>
+      <div class="prop-row"><span class="prop-key">👤 Responsável</span><div class="prop-val"><input class="prop-input" placeholder="Nome do fiscal"></div></div>
+      <div class="prop-row"><span class="prop-key">🏢 Empresa</span><div class="prop-val"><input class="prop-input" value="KRM" readonly></div></div>
+      <div class="prop-row"><span class="prop-key">📊 Progresso</span><div class="prop-val">
+        <div class="progress-bar"><div class="progress-fill krm" id="prog-krm" style="width:0%"></div></div>
+        <div class="progress-label" id="prog-label-krm">0 de 0 itens respondidos</div>
+      </div></div>
+    </div>
+
+    <div class="section"><div class="section-title"><span class="num num-krm">1</span>Inspeção em Canteiro de Obras</div><div class="checklist" id="krm-canteiro"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">2</span>Centrais de Produção</div>
+      <div class="section-note">Avaliar cada central: Argamassa | Concreto | Armadura | Pré-moldados | Corte de Blocos | Carpintaria</div>
+      <div class="checklist" id="krm-centrais"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">3</span>Almoxarifado</div><div class="checklist" id="krm-almox"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">4</span>Segurança do Trabalho</div><div class="checklist" id="krm-seg"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">5</span>Sala Técnica / Documentação da Qualidade</div><div class="checklist" id="krm-sala"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">6</span>Serviços Controlados em Execução</div>
+      <div class="section-note">Verificar no mínimo 7 serviços. Priorizar serviços da CAIXA.</div>
+      <div class="checklist" id="krm-servicos"></div></div>
+    <div class="section"><div class="section-title"><span class="num num-krm">7</span>Amostragem de Dossiê de Funcionários</div>
+      <table class="dossie-table">
+        <thead><tr>
+          <th style="background:var(--krm); text-align:left; min-width:140px">Informações</th>
+          <th style="background:var(--krm)">Func. 1</th><th style="background:var(--krm)">Func. 2</th>
+          <th style="background:var(--krm)">Func. 3</th><th style="background:var(--krm)">Func. 4</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="label">Nome</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Função</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Data de Admissão</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr class="sub-row green"><td colspan="5">Status Documental</td></tr>
+          <tr><td class="label">OS</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">ASO</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Normas Regulamentadoras</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr><td class="label">Último EPI e data</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>
+          <tr class="sub-row green"><td colspan="5">Observações</td></tr>
+          <tr><td colspan="5"><input style="width:100%;border:none;outline:none;font-size:13px;padding:4px"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="section"><div class="section-title"><span class="num num-krm">8</span>Documentos de Terceirizados</div>
+      <table class="dossie-table"><tbody>
+        <tr><td class="label" style="width:25%">Terceirizado</td><td><input></td><td class="label">OS</td><td><input></td></tr>
+        <tr><td class="label">Data de Admissão</td><td><input></td><td class="label">ASO</td><td><input></td></tr>
+        <tr><td class="label">Função</td><td><input></td><td class="label">Treinamentos</td><td><input></td></tr>
+        <tr><td class="label">Empresa</td><td><input></td><td></td><td></td></tr>
+        <tr class="sub-row green"><td colspan="4">Observações</td></tr>
+        <tr><td colspan="4"><input style="width:100%;border:none;outline:none;font-size:13px;padding:4px"></td></tr>
+      </tbody></table>
+    </div>
+    <div class="section"><div class="section-title"><span class="num num-krm">9</span>Serviços por Bloco e Pavimento</div>
+      <div class="bloco-grid"><table><thead><tr id="bloco-header-krm"></tr></thead><tbody id="bloco-body-krm"></tbody></table></div>
+    </div>
+    <div class="section"><div class="section-title"><span class="num num-krm">10</span>Registro de Não Conformidades (RNCs)</div>
+      <table class="rnc-table">
+        <thead><tr>
+          <th style="background:var(--krm); width:40px">Nº</th>
+          <th style="background:var(--krm)">Requisito</th>
+          <th style="background:var(--krm)">Falha Identificada</th>
+          <th style="background:var(--krm)">Evidência</th>
+          <th style="background:var(--krm); width:120px">Status</th>
+        </tr></thead>
+        <tbody id="rnc-body-krm"></tbody>
+      </table>
+    </div>
+    <div class="section"><div class="section-title"><span class="num num-krm">11</span>Notas de Auditoria Externa — KRM</div>
+      <div class="audit-box">
+        <div class="audit-box-header" style="background:var(--krm)">📋 Notas de Auditoria — KRM</div>
+        <div class="audit-box-body" id="audit-krm"></div>
+      </div>
+    </div>
+    <div class="print-note">Ficha de Vistoria — KRM | Versão 02 | Uso Interno | Template Notion</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Botão salvar flutuante -->
+<div class="save-fab">
+  <button class="save-btn eng" id="save-btn-eng" onclick="salvarVistoria('eng')">💾 Salvar ENGEPLAN</button>
+  <button class="save-btn krm" id="save-btn-krm" onclick="salvarVistoria('krm')" style="display:none">💾 Salvar KRM</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const DATA = {
+  canteiro: {
+    groups: [
+      { title: "Canteiro — Itens Gerais", items:[
+        "Verificar layout do canteiro junto ao PQO",
+        "Organização geral do canteiro",
+        "Avaliar fluxo de materiais e pessoas",
+        "Identificar oportunidades de melhoria",
+        "Medidas para otimizar o armazenamento de materiais",
+        "Identificação adequada dos materiais armazenados",
+        "Critérios de armazenagem (comparar com matriz de armazenagem)",
+        "Verificar segurança no armazenamento",
+        "Verificar condições de armazenamento temporário",
+        "Avaliar qualidade dos materiais estocados em campo",
+        "Baia de resíduos — condições gerais",
+        "Baias de tubos — condições gerais",
+      ]},
+      { title: "Vestiário / Banheiro / Refeitório", items:[
+        "Vestiário: condições gerais de conservação e limpeza; adequação às normas",
+        "Banheiro: condições de higiene e funcionamento; quantidade adequada ao efetivo",
+        "Refeitório: condições de limpeza e itens de funcionamento",
+      ]},
+    ]
+  },
+  centrais: {
+    groups: [{ title: "Critérios Gerais das Centrais", items:[
+      "Área coberta / protegida",
+      "Piso regularizado",
+      "Caixote para coleta de aparas (aço/madeira) sob bancada",
+      "Foto do profissional responsável afixada",
+      "Tabela de traços com assinatura do engenheiro (Argamassa/Concreto)",
+      "Identificação e sinalização da central",
+      "Condições de limpeza e organização",
+      "Equipamentos em bom estado de conservação",
+    ]}]
+  },
+  almoxGeralItems: [
+    "Avaliar condições do estoque: organização e identificação",
+    "Avaliar controle de estoque via kardex e sistema",
+    "Comparar nota fiscal com pedido de compra",
+    "Rastreabilidade da cerâmica (certificado/etiqueta)",
+    "Amostragem de itens do estoque (contagem vs kardex vs sistema)",
+    "Certificado de qualidade dos materiais",
+  ],
+  almoxEng: [
+    "Ficha de manutenção preventiva de equipamentos",
+    "Ficha de manutenção corretiva de equipamentos",
+    "Verificar carimbo nos pedidos de compra",
+    "Ficha de verificação periódica de estoque",
+    "Ficha de avaliação de fornecedores",
+    "Pedidos anexados à nota fiscal",
+    "Ficha de inspeção no recebimento",
+    "10 notas fiscais para verificação cruzada com financeiro (coletar referências)",
+  ],
+  almoxKrm: [
+    "Ficha de manutenção + checklist de 2 equipamentos",
+    "Checklist de inspeção de recebimento de materiais",
+    "5 notas de materiais (sendo 3 de materiais guardados no canteiro)",
+    "Amostragem de 5 materiais físicos em estoque",
+    "ART PGRCC disponível",
+    "ART dos programas anexada ao final de cada programa",
+    "Assinaturas presentes nos programas de obra",
+    "Nome da empresa de limpeza registrado",
+  ],
+  segGeralItems: [
+    "CIPA — documentação em dia",
+    "Documentos dos terceirizados",
+    "Projeto de linha de vida",
+    "Programas de Obra atualizados: PGR, PCMSO, LTCAT",
+    "Verificar integridade dos dossiês dos funcionários (amostragem, esp. operadores)",
+    "Laudo de aterramento das instalações do canteiro",
+    "SCPO — comunicação prévia",
+    "Avaliar organização/limpeza e condições de circulação e segurança",
+    "Laudo de aterramento dos bebedouros e centrais com ART",
+    "Projeto de proteção coletiva",
+    "Projeto de balanças",
+  ],
+  segEng: [
+    "Checklist de segurança (modelo Engeplan)",
+    "Ficha de treinamento introdutório",
+  ],
+  segKrm: [
+    "SCPO apresentado",
+    "PGR, PCMSO, PGRCC, CIPA verificados",
+  ],
+  salaGeralItems: [
+    "Efetivo atualizado (administrativo, operacional e terceirizados)",
+    "Gestão à vista — painéis e quadros de informação",
+    "Mapa de concretagem e rastreabilidade do concreto",
+    "Ficha de calibração de equipamentos (e novos equipamentos a calibrar)",
+    "Indicadores de desempenho atualizados",
+    "Treinamento do pessoal nas IT (Instruções de Trabalho)",
+    "Atas de reuniões de acompanhamento de obras",
+    "PQO — verificar histórico e evolução das Não Conformidades",
+    "Manifestos de coleta de resíduos",
+    "Certificado de operação do coletor (MTR / licença do transportador)",
+    "Ensaio de prismas de bloco",
+    "Certificados de calibração de equipamentos (anotar itens a recalibrar)",
+    "Plano de controle tecnológico",
+    "Cronograma real de obras com justificativas para desvios",
+  ],
+  salaEng: [
+    "CQE (Controle de Qualidade de Execução)",
+    "Ficha SGQ",
+    "Formulários de gestão de risco / análise de riscos",
+    "PQO completo",
+    "SCPO",
+    "Histórico dos CQEs",
+    "Pré-auditoria (histórico)",
+  ],
+  salaKrm: [
+    "FVS (Ficha de Verificação de Serviço)",
+    "Indicadores e programas de obra",
+  ],
+  servicosItems: Array.from({length:7},(_,i)=>`Serviço ${i+1} — Serviço: ______________ | Executor: ______________`),
+  entrevistaItems: [
+    "Executor conhece a política da qualidade da empresa?",
+    "Nome do executor consta no registro de treinamento do serviço que executa?",
+    "Executor conhece a IT do serviço em execução?",
+    "Central de argamassa: operador identificado; traço em execução conforme tabela assinada",
+    "Nome do operador de máquinas registrado",
+  ],
+  auditEng: [
+    "Almoxarifado: verificar pedidos anexados à nota, ficha de inspeção no recebimento, manutenção preventiva de equipamentos, carimbo nas ordens de compra",
+    "Coletar 10 notas fiscais para verificação cruzada com o financeiro no escritório",
+    "Sala Técnica: PQO, indicadores, cronograma real com justificativas para desvios, ensaio de bloco/prismas, histórico geral, MTR e licenças de operação do transportador",
+    "Campo: centrais (documento do responsável pela operação), serviços controlados",
+    "Segurança: SCPO, programas de obra, pré-auditoria, histórico dos CQEs, análise de riscos, calibração, acompanhamento de NCs, ITs e treinamentos",
+    "Abrir RNCs no formato: Requisito | Falha | Evidência",
+    "Conferir se funcionários conheciam a política da qualidade e constavam no registro de treinamento do serviço executado",
+    "Auditor pediu PQO, SCPO e ART de execução para ficha de abertura da auditoria",
+    "Segurança (abertura): PGR, SCPO, PCMSO, PGRCC, CIPA",
+    "Auditor perguntou quem eram os terceirizados em execução no dia e quais serviços estavam sendo executados",
+  ],
+  auditKrm: [
+    "Almoxarifado: ficha de manutenção + checklist de 2 equipamentos; checklist de inspeção de materiais; 5 notas (3 de itens no canteiro); amostragem física de 5 materiais",
+    "Serviços verificados: Pintura (nome do pintor, entrevista sobre serviço e política), Pia/Tanque, Cerâmica, Contrapiso (acabamento da laje)",
+    "Verificação de serviços entregues em busca de falhas: desníveis, acabamento com rolo, limpeza",
+    "Campo: sete serviços, qualidade do produto entregue mais entrevista com executor",
+    "Sala técnica / segurança: ART PGRCC verificada; ART dos programas anexada ao final de cada programa; assinaturas nos programas; nome da empresa de limpeza registrado",
+    "Central de argamassa: nome do profissional responsável e traço em execução conforme tabela afixada",
+    "Nome do operador de máquinas registrado",
+  ],
+  regsEng: [
+    ["REG 002-01","Levantamento e Análise dos Riscos por Processo"],
+    ["REG 002-02","Gerenciamento dos Riscos"],
+    ["REG 004-01","Registro de Não Conformidade (RNC)"],
+    ["REG 004-02","Acompanhamento de Não Conformidade"],
+    ["REG 005-02","Registro de Identificação e Avaliação das Competências – Obra"],
+    ["REG 005-03","Planejamento e Acompanhamento de Treinamento"],
+    ["REG 008-01","Avaliação de Desempenho de Calibração"],
+    ["REG 008-02","Avaliação de Desempenho de Empresas de Controle Tecnológico"],
+    ["REG 008-03","Avaliação de Desempenho de Fornecedores de Projetos"],
+    ["REG 009-01","Controle de Manutenção Corretiva de Equipamentos"],
+    ["REG 009-02","Controle de Manutenção Preventiva de Equipamentos"],
+    ["REG 009-04","Check List de Inspeção Final das Unidades (Interna)"],
+    ["REG 010-01","Mapa de Controle de Concretagem – Concreto Produzido no Local"],
+    ["REG 010-02","Mapa de Controle de Concretagem – Concreto Usinado"],
+    ["REG 012-01","Validação de Certificados de Calibração (Externa)"],
+    ["REG 012-02","Controle de Calibração e Verificação Interna"],
+    ["REG 013-01","Verificação Periódica de Materiais Controlados"],
+    ["REG 013-02","Controle de Recebimento de Materiais de Terceirizado"],
+    ["REG 013-03","Avaliação de Fornecedor de Materiais"],
+    ["REG 013-04","Controle de Recebimento"],
+    ["REG 020-01","Objetivos da Qualidade"],
+  ],
+};
+
+// ── RENDER HELPERS ───────────────────────────────────────────────────────────
+function makeChecklistGroup(containerId, groups, color) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = '';
+  groups.forEach(g => {
+    const sh = document.createElement('div');
+    sh.className = 'cl-subheader' + (color==='green' ? ' green' : '');
+    sh.textContent = g.title;
+    el.appendChild(sh);
+    g.items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'cl-item';
+      row.innerHTML = `
+        <span class="cl-item-text">${item}</span>
+        <div class="status-group">
+          <button class="status-btn btn-conf" onclick="setStatus(this,'conf')">✓ Conf.</button>
+          <button class="status-btn btn-nc"   onclick="setStatus(this,'nc')">✗ N/C</button>
+          <button class="status-btn btn-na"   onclick="setStatus(this,'na')">— N/A</button>
+        </div>
+        <input class="cl-comment" placeholder="Obs...">
+      `;
+      el.appendChild(row);
+    });
+  });
+}
+
+function setStatus(btn, type) {
+  const group = btn.parentElement;
+  group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateProgress();
+}
+
+function updateProgress() {
+  ['eng','krm'].forEach(co => {
+    const page = document.getElementById('page-'+co);
+    if(!page) return;
+    const all = page.querySelectorAll('.status-btn.btn-conf, .status-btn.btn-nc, .status-btn.btn-na');
+    const totalGroups = new Set();
+    page.querySelectorAll('.status-group').forEach((g,i) => totalGroups.add(i));
+    const total = page.querySelectorAll('.status-group').length;
+    const done = page.querySelectorAll('.status-btn.active').length;
+    const pct = total > 0 ? Math.round((done/total)*100) : 0;
+    document.getElementById('prog-'+co).style.width = pct + '%';
+    document.getElementById('prog-label-'+co).textContent = `${done} de ${total} itens respondidos (${pct}%)`;
+  });
+}
+
+function buildRNCTable(id, color) {
+  const tb = document.getElementById(id);
+  for(let i=1;i<=5;i++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center;font-weight:700">${i}</td>
+      <td><input type="text" placeholder="Requisito..."></td>
+      <td><input type="text" placeholder="Descrição da falha..."></td>
+      <td><input type="text" placeholder="Evidência..."></td>
+      <td><select class="status-select" style="border:none;font-family:inherit;font-size:12px;outline:none">
+        <option>☐ Pendente</option><option>🔴 Aberta</option><option>✅ Fechada</option>
+      </select></td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function buildBlocos(headId, bodyId, color) {
+  const head = document.getElementById(headId);
+  const body = document.getElementById(bodyId);
+  head.innerHTML = `<th style="background:${color};text-align:left;padding:8px 10px;font-size:12px">Pavimento</th>`;
+  for(let b=1;b<=8;b++) {
+    const th = document.createElement('th');
+    th.style.background = color;
+    th.textContent = `Bloco 0${b}`;
+    head.appendChild(th);
+  }
+  ['Pavimento 1','Pavimento 2','Pavimento 3','Pavimento 4'].forEach(p => {
+    const tr = document.createElement('tr');
+    let html = `<td class="pav-label">${p}</td>`;
+    for(let b=0;b<8;b++) html += `<td><input type="text" placeholder="—"></td>`;
+    tr.innerHTML = html;
+    body.appendChild(tr);
+  });
+}
+
+function buildAudit(id, items) {
+  const el = document.getElementById(id);
+  items.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'audit-item';
+    d.innerHTML = `<span class="audit-bullet">•</span><span>${item}</span>`;
+    el.appendChild(d);
+  });
+}
+
+function buildRegs(id) {
+  const tb = document.getElementById(id);
+  DATA.regsEng.forEach(([code, desc]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="reg-code">${code}</td>
+      <td>${desc}</td>
+      <td class="check-cell"><input type="checkbox"></td>
+      <td><input type="text" placeholder="Observação..."></td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+// ── INTEGRAÇÃO GOOGLE SHEETS ──────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTNRlZI0ng7wjitEsnPGoJblSzRr45huTiMId8dWaELVwjBcMbFGVYjTNwB_6qBWq6Xw/exec';
+const TOKEN = 'vistoria2026';
+
+function mostrarToast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + tipo + ' show';
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function coletarDados(co) {
+  const page = document.getElementById('page-' + co);
+
+  // Propriedades do cabeçalho
+  const inputs = page.querySelectorAll('.prop-input');
+  const obra = inputs[0]?.value || '';
+  const data = inputs[1]?.value || '';
+  const responsavel = inputs[2]?.value || '';
+  const empresa = inputs[3]?.value || co.toUpperCase();
+
+  // Progresso
+  const totalGrupos = page.querySelectorAll('.status-group').length;
+  const respondidos = page.querySelectorAll('.status-btn.active').length;
+  const pct = totalGrupos > 0 ? Math.round((respondidos / totalGrupos) * 100) : 0;
+
+  // Checklists
+  const checklists = [];
+  page.querySelectorAll('.cl-item').forEach(item => {
+    const texto = item.querySelector('.cl-item-text')?.textContent?.trim() || '';
+    const ativo = item.querySelector('.status-btn.active');
+    const status = ativo ? ativo.textContent.trim() : 'Não respondido';
+    const obs = item.querySelector('.cl-comment')?.value || '';
+    checklists.push({ item: texto, status, obs });
+  });
+
+  // RNCs
+  const rncs = [];
+  const rncId = co === 'eng' ? 'rnc-body-eng' : 'rnc-body-krm';
+  document.getElementById(rncId)?.querySelectorAll('tr').forEach((tr, i) => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 5) return;
+    rncs.push({
+      num: i + 1,
+      requisito: tds[1]?.querySelector('input')?.value || '',
+      falha: tds[2]?.querySelector('input')?.value || '',
+      evidencia: tds[3]?.querySelector('input')?.value || '',
+      status: tds[4]?.querySelector('select')?.value || '',
+    });
+  });
+
+  // Dossiê funcionários
+  const dossie = [];
+  page.querySelectorAll('.dossie-table tbody tr').forEach(tr => {
+    const label = tr.querySelector('.label')?.textContent?.trim();
+    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value);
+    if (label && vals.length) dossie.push({ campo: label, valores: vals });
+  });
+
+  // Blocos/pavimentos
+  const blocos = [];
+  const blocoBodyId = co === 'eng' ? 'bloco-body-eng' : 'bloco-body-krm';
+  document.getElementById(blocoBodyId)?.querySelectorAll('tr').forEach(tr => {
+    const pav = tr.querySelector('.pav-label')?.textContent?.trim() || '';
+    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value);
+    blocos.push({ pavimento: pav, blocos: vals });
+  });
+
+  return {
+    token: TOKEN,
+    empresa,
+    obra,
+    dataVistoria: data,
+    responsavel,
+    itensRespondidos: respondidos,
+    totalItens: totalGrupos,
+    pctConclusao: pct + '%',
+    checklists,
+    rncs,
+    dossie,
+    blocos,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function salvarVistoria(co) {
+  const btnId = 'save-btn-' + co;
+  const btn = document.getElementById(btnId);
+  const textoOriginal = btn.textContent;
+
+  // Validação mínima
+  const page = document.getElementById('page-' + co);
+  const obra = page.querySelectorAll('.prop-input')[0]?.value?.trim();
+  if (!obra) {
+    mostrarToast('⚠️ Preencha o nome da obra antes de salvar.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Salvando...';
+
+  try {
+    const dados = coletarDados(co);
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    });
+    // no-cors não retorna body — assumimos sucesso se não houve erro
+    mostrarToast('✅ Vistoria salva com sucesso!', 'ok');
+  } catch (err) {
+    mostrarToast('❌ Erro ao salvar. Verifique a conexão.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  // ENGEPLAN checklists
+  makeChecklistGroup('canteiro', DATA.canteiro.groups, 'blue');
+  makeChecklistGroup('centrais-list', DATA.centrais.groups, 'blue');
+  makeChecklistGroup('almox-list', [
+    { title: 'Almoxarifado — Itens Gerais', items: DATA.almoxGeralItems },
+    { title: 'Almoxarifado — Engeplan', items: DATA.almoxEng },
+  ], 'blue');
+  makeChecklistGroup('seg-list', [
+    { title: 'Segurança — Itens Gerais', items: DATA.segGeralItems },
+    { title: 'Segurança — Engeplan', items: DATA.segEng },
+  ], 'blue');
+  makeChecklistGroup('sala-list', [
+    { title: 'Sala Técnica — Itens Gerais', items: DATA.salaGeralItems },
+    { title: 'Sala Técnica — Engeplan', items: DATA.salaEng },
+  ], 'blue');
+  makeChecklistGroup('servicos-list', [
+    { title: 'Serviços Controlados — Avaliação em Campo', items: DATA.servicosItems },
+    { title: 'Verificação dos Executores (Entrevista)', items: DATA.entrevistaItems },
+  ], 'blue');
+  
+  // KRM checklists
+  makeChecklistGroup('krm-canteiro', DATA.canteiro.groups, 'green');
+  makeChecklistGroup('krm-centrais', DATA.centrais.groups, 'green');
+  makeChecklistGroup('krm-almox', [
+    { title: 'Almoxarifado — Itens Gerais', items: DATA.almoxGeralItems },
+    { title: 'Almoxarifado — KRM', items: DATA.almoxKrm },
+  ], 'green');
+  makeChecklistGroup('krm-seg', [
+    { title: 'Segurança — Itens Gerais', items: DATA.segGeralItems },
+    { title: 'Segurança — KRM', items: DATA.segKrm },
+  ], 'green');
+  makeChecklistGroup('krm-sala', [
+    { title: 'Sala Técnica — Itens Gerais', items: DATA.salaGeralItems },
+    { title: 'Sala Técnica — KRM', items: DATA.salaKrm },
+  ], 'green');
+  makeChecklistGroup('krm-servicos', [
+    { title: 'Serviços Controlados — Avaliação em Campo', items: DATA.servicosItems },
+    { title: 'Verificação dos Executores (Entrevista)', items: DATA.entrevistaItems },
+  ], 'green');
+  
+  buildRNCTable('rnc-body-eng', 'eng');
+  buildRNCTable('rnc-body-krm', 'krm');
+  buildBlocos('bloco-header-eng', 'bloco-body-eng', 'var(--eng)');
+  buildBlocos('bloco-header-krm', 'bloco-body-krm', 'var(--krm)');
+  buildAudit('audit-eng', DATA.auditEng);
+  buildAudit('audit-krm', DATA.auditKrm);
+  buildRegs('reg-body');
+  updateProgress();
+}
+
+function showPage(co) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+co).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-'+co).classList.add('active');
+  // Alterna botão salvar
+  document.getElementById('save-btn-eng').style.display = co === 'eng' ? 'flex' : 'none';
+  document.getElementById('save-btn-krm').style.display = co === 'krm' ? 'flex' : 'none';
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+init();
+</script>
+</body>
+</html>
