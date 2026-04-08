@@ -158,6 +158,27 @@
   .save-btn.krm { background: var(--krm); }
   .save-btn:disabled { opacity: .6; cursor: not-allowed; }
 
+  /* Nova vistoria button no sidebar */
+  .nova-vistoria-btn { display: flex; align-items: center; gap: 8px; margin: 8px 8px 0; padding: 8px 12px; border-radius: 6px; border: 1.5px dashed var(--border); background: transparent; cursor: pointer; font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--sub); width: calc(100% - 16px); transition: all .15s; }
+  .nova-vistoria-btn:hover { border-color: #E5534B; color: #E5534B; background: #FEF2F1; }
+
+  /* Auto-save indicator */
+  .autosave-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: #2DA44E; color: white; font-size: 11px; font-weight: 600; padding: 3px 12px; text-align: center; transform: translateY(-100%); transition: transform .3s; }
+  .autosave-bar.show { transform: translateY(0); }
+
+  /* Modal overlay */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal { background: var(--white); border-radius: 12px; padding: 28px; max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .modal p { font-size: 14px; color: var(--sub); margin-bottom: 20px; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-family: var(--font); font-size: 13px; font-weight: 600; transition: all .15s; }
+  .modal-btn.cancel { background: var(--bg); color: var(--sub); }
+  .modal-btn.cancel:hover { background: var(--border); }
+  .modal-btn.confirm { background: #E5534B; color: white; }
+  .modal-btn.confirm:hover { background: #cc3b34; }
+
   /* Toast de feedback */
   .toast { position: fixed; bottom: 80px; right: 24px; z-index: 1000; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; color: white; opacity: 0; transform: translateY(8px); transition: all .3s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateY(0); }
@@ -202,7 +223,8 @@
   <div class="nav-item" onclick="scrollTo('dossie')">👷 Dossiê</div>
   <div class="nav-item" onclick="scrollTo('blocos')">🏗️ Blocos</div>
   <div class="nav-item" onclick="scrollTo('rnc')">⚠️ RNCs</div>
-  <div class="nav-item" onclick="scrollTo('audit')">📋 Auditoria</div>
+  <div class="nav-divider"></div>
+  <button class="nova-vistoria-btn" onclick="confirmarNovaVistoria()">＋ Nova vistoria</button>
 </div>
 
 <!-- Main content -->
@@ -450,6 +472,21 @@
 
 </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- Autosave indicator -->
+<div class="autosave-bar" id="autosave-bar">✓ Dados salvos automaticamente</div>
+
+<!-- Modal nova vistoria -->
+<div class="modal-overlay" id="modal-nova">
+  <div class="modal">
+    <h3>🗑️ Iniciar nova vistoria?</h3>
+    <p>Todos os dados preenchidos atualmente serão apagados. Certifique-se de ter salvado na planilha antes de continuar.</p>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="modal-btn confirm" onclick="novaVistoria()">Sim, apagar e começar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Botão salvar flutuante -->
 <div class="save-fab">
@@ -748,76 +785,193 @@ function mostrarToast(msg, tipo) {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+// ── PERSISTÊNCIA LOCAL (localStorage) ────────────────────────────────────────
+const LS_KEY = 'vistoria_dados';
+let autoSaveTimer = null;
+
+function mostrarAutosave() {
+  const bar = document.getElementById('autosave-bar');
+  bar.classList.add('show');
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => bar.classList.remove('show'), 2000);
+}
+
+function salvarLocal() {
+  const estado = {};
+  // Salvar inputs e selects de todas as pages
+  document.querySelectorAll('.page').forEach(page => {
+    const co = page.id.replace('page-', '');
+    estado[co] = {};
+    // prop-inputs (obra, data, responsável)
+    page.querySelectorAll('.prop-input').forEach((inp, i) => {
+      estado[co]['prop_' + i] = inp.value;
+    });
+    // status dos botões de checklist
+    page.querySelectorAll('.cl-item').forEach((item, i) => {
+      const ativo = item.querySelector('.status-btn.active');
+      estado[co]['cl_status_' + i] = ativo ? ativo.dataset.tipo : '';
+      const obs = item.querySelector('.cl-comment');
+      estado[co]['cl_obs_' + i] = obs ? obs.value : '';
+    });
+    // RNC inputs e selects
+    const rncId = co === 'eng' ? 'rnc-body-eng' : 'rnc-body-krm';
+    document.getElementById(rncId)?.querySelectorAll('tr').forEach((tr, ri) => {
+      tr.querySelectorAll('input').forEach((inp, ii) => {
+        estado[co]['rnc_' + ri + '_' + ii] = inp.value;
+      });
+      const sel = tr.querySelector('select');
+      if (sel) estado[co]['rnc_' + ri + '_sel'] = sel.value;
+    });
+    // Dossiê
+    page.querySelectorAll('.dossie-table input').forEach((inp, i) => {
+      estado[co]['dossie_' + i] = inp.value;
+    });
+    // Blocos
+    const blocoBodyId = co === 'eng' ? 'bloco-body-eng' : 'bloco-body-krm';
+    document.getElementById(blocoBodyId)?.querySelectorAll('input').forEach((inp, i) => {
+      estado[co]['bloco_' + i] = inp.value;
+    });
+    // Registros SGQ
+    page.querySelectorAll('.reg-table input[type=checkbox]').forEach((cb, i) => {
+      estado[co]['reg_cb_' + i] = cb.checked;
+    });
+    page.querySelectorAll('.reg-table input[type=text]').forEach((inp, i) => {
+      estado[co]['reg_txt_' + i] = inp.value;
+    });
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(estado));
+  mostrarAutosave();
+}
+
+function restaurarLocal() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) return;
+  let estado;
+  try { estado = JSON.parse(raw); } catch(e) { return; }
+
+  document.querySelectorAll('.page').forEach(page => {
+    const co = page.id.replace('page-', '');
+    const s = estado[co];
+    if (!s) return;
+    // prop-inputs
+    page.querySelectorAll('.prop-input').forEach((inp, i) => {
+      if (s['prop_' + i] !== undefined) inp.value = s['prop_' + i];
+    });
+    // checklist status
+    page.querySelectorAll('.cl-item').forEach((item, i) => {
+      const tipo = s['cl_status_' + i];
+      if (tipo) {
+        const btn = item.querySelector(`.status-btn[data-tipo="${tipo}"]`);
+        if (btn) { btn.classList.add('active'); }
+      }
+      const obs = item.querySelector('.cl-comment');
+      if (obs && s['cl_obs_' + i] !== undefined) obs.value = s['cl_obs_' + i];
+    });
+    // RNC
+    const rncId = co === 'eng' ? 'rnc-body-eng' : 'rnc-body-krm';
+    document.getElementById(rncId)?.querySelectorAll('tr').forEach((tr, ri) => {
+      tr.querySelectorAll('input').forEach((inp, ii) => {
+        if (s['rnc_' + ri + '_' + ii] !== undefined) inp.value = s['rnc_' + ri + '_' + ii];
+      });
+      const sel = tr.querySelector('select');
+      if (sel && s['rnc_' + ri + '_sel']) sel.value = s['rnc_' + ri + '_sel'];
+    });
+    // Dossiê
+    page.querySelectorAll('.dossie-table input').forEach((inp, i) => {
+      if (s['dossie_' + i] !== undefined) inp.value = s['dossie_' + i];
+    });
+    // Blocos
+    const blocoBodyId = co === 'eng' ? 'bloco-body-eng' : 'bloco-body-krm';
+    document.getElementById(blocoBodyId)?.querySelectorAll('input').forEach((inp, i) => {
+      if (s['bloco_' + i] !== undefined) inp.value = s['bloco_' + i];
+    });
+    // Registros SGQ
+    page.querySelectorAll('.reg-table input[type=checkbox]').forEach((cb, i) => {
+      if (s['reg_cb_' + i] !== undefined) cb.checked = s['reg_cb_' + i];
+    });
+    page.querySelectorAll('.reg-table input[type=text]').forEach((inp, i) => {
+      if (s['reg_txt_' + i] !== undefined) inp.value = s['reg_txt_' + i];
+    });
+  });
+  updateProgress();
+}
+
+function ativarAutoSave() {
+  document.addEventListener('input', () => salvarLocal());
+  document.addEventListener('change', () => salvarLocal());
+  // Interceptar cliques nos status-btn
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('status-btn')) setTimeout(salvarLocal, 50);
+  });
+}
+
+// ── NOVA VISTORIA ─────────────────────────────────────────────────────────────
+function confirmarNovaVistoria() {
+  document.getElementById('modal-nova').classList.add('show');
+}
+
+function fecharModal() {
+  document.getElementById('modal-nova').classList.remove('show');
+}
+
+function novaVistoria() {
+  localStorage.removeItem(LS_KEY);
+  fecharModal();
+  location.reload();
+}
+
+// Fechar modal clicando fora
+document.getElementById('modal-nova').addEventListener('click', function(e) {
+  if (e.target === this) fecharModal();
+});
+
+// ── COLETA DE DADOS ────────────────────────────────────────────────────────────
 function coletarDados(co) {
   const page = document.getElementById('page-' + co);
-
-  // Propriedades do cabeçalho
   const inputs = page.querySelectorAll('.prop-input');
   const obra = inputs[0]?.value || '';
   const data = inputs[1]?.value || '';
   const responsavel = inputs[2]?.value || '';
   const empresa = inputs[3]?.value || co.toUpperCase();
 
-  // Progresso
   const totalGrupos = page.querySelectorAll('.status-group').length;
   const respondidos = page.querySelectorAll('.status-btn.active').length;
   const pct = totalGrupos > 0 ? Math.round((respondidos / totalGrupos) * 100) : 0;
 
-  // Checklists
-  const checklists = [];
+  // Apenas itens modificados (com status definido ou com obs)
+  const itensMod = [];
   page.querySelectorAll('.cl-item').forEach(item => {
     const texto = item.querySelector('.cl-item-text')?.textContent?.trim() || '';
     const ativo = item.querySelector('.status-btn.active');
-    const status = ativo ? ativo.textContent.trim() : 'Não respondido';
-    const obs = item.querySelector('.cl-comment')?.value || '';
-    checklists.push({ item: texto, status, obs });
+    const obs = item.querySelector('.cl-comment')?.value?.trim() || '';
+    if (ativo || obs) {
+      itensMod.push({
+        item: texto,
+        status: ativo ? ativo.textContent.trim() : '—',
+        obs: obs || ''
+      });
+    }
   });
 
-  // RNCs
+  // RNCs preenchidas
   const rncs = [];
   const rncId = co === 'eng' ? 'rnc-body-eng' : 'rnc-body-krm';
   document.getElementById(rncId)?.querySelectorAll('tr').forEach((tr, i) => {
     const tds = tr.querySelectorAll('td');
     if (tds.length < 5) return;
-    rncs.push({
-      num: i + 1,
-      requisito: tds[1]?.querySelector('input')?.value || '',
-      falha: tds[2]?.querySelector('input')?.value || '',
-      evidencia: tds[3]?.querySelector('input')?.value || '',
-      status: tds[4]?.querySelector('select')?.value || '',
-    });
-  });
-
-  // Dossiê funcionários
-  const dossie = [];
-  page.querySelectorAll('.dossie-table tbody tr').forEach(tr => {
-    const label = tr.querySelector('.label')?.textContent?.trim();
-    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value);
-    if (label && vals.length) dossie.push({ campo: label, valores: vals });
-  });
-
-  // Blocos/pavimentos
-  const blocos = [];
-  const blocoBodyId = co === 'eng' ? 'bloco-body-eng' : 'bloco-body-krm';
-  document.getElementById(blocoBodyId)?.querySelectorAll('tr').forEach(tr => {
-    const pav = tr.querySelector('.pav-label')?.textContent?.trim() || '';
-    const vals = Array.from(tr.querySelectorAll('input')).map(i => i.value);
-    blocos.push({ pavimento: pav, blocos: vals });
+    const req = tds[1]?.querySelector('input')?.value?.trim() || '';
+    const falha = tds[2]?.querySelector('input')?.value?.trim() || '';
+    const ev = tds[3]?.querySelector('input')?.value?.trim() || '';
+    const status = tds[4]?.querySelector('select')?.value || '';
+    if (req || falha || ev) rncs.push({ num: i+1, requisito: req, falha, evidencia: ev, status });
   });
 
   return {
     token: TOKEN,
-    empresa,
-    obra,
-    dataVistoria: data,
-    responsavel,
-    itensRespondidos: respondidos,
-    totalItens: totalGrupos,
+    empresa, obra, dataVistoria: data, responsavel,
+    itensRespondidos: respondidos, totalItens: totalGrupos,
     pctConclusao: pct + '%',
-    checklists,
-    rncs,
-    dossie,
-    blocos,
+    itensMod, rncs,
     timestamp: new Date().toISOString(),
   };
 }
@@ -826,27 +980,19 @@ async function salvarVistoria(co) {
   const btnId = 'save-btn-' + co;
   const btn = document.getElementById(btnId);
   const textoOriginal = btn.textContent;
-
-  // Validação mínima
   const page = document.getElementById('page-' + co);
   const obra = page.querySelectorAll('.prop-input')[0]?.value?.trim();
-  if (!obra) {
-    mostrarToast('⚠️ Preencha o nome da obra antes de salvar.', 'err');
-    return;
-  }
+  if (!obra) { mostrarToast('⚠️ Preencha o nome da obra antes de salvar.', 'err'); return; }
 
   btn.disabled = true;
   btn.textContent = '⏳ Salvando...';
-
   try {
     const dados = coletarDados(co);
-    const resp = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dados),
     });
-    // no-cors não retorna body — assumimos sucesso se não houve erro
     mostrarToast('✅ Vistoria salva com sucesso!', 'ok');
   } catch (err) {
     mostrarToast('❌ Erro ao salvar. Verifique a conexão.', 'err');
@@ -858,7 +1004,6 @@ async function salvarVistoria(co) {
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
-  // ENGEPLAN checklists
   makeChecklistGroup('canteiro', DATA.canteiro.groups, 'blue');
   makeChecklistGroup('centrais-list', DATA.centrais.groups, 'blue');
   makeChecklistGroup('almox-list', [
@@ -877,8 +1022,6 @@ function init() {
     { title: 'Serviços Controlados — Avaliação em Campo', items: DATA.servicosItems },
     { title: 'Verificação dos Executores (Entrevista)', items: DATA.entrevistaItems },
   ], 'blue');
-  
-  // KRM checklists
   makeChecklistGroup('krm-canteiro', DATA.canteiro.groups, 'green');
   makeChecklistGroup('krm-centrais', DATA.centrais.groups, 'green');
   makeChecklistGroup('krm-almox', [
@@ -897,7 +1040,7 @@ function init() {
     { title: 'Serviços Controlados — Avaliação em Campo', items: DATA.servicosItems },
     { title: 'Verificação dos Executores (Entrevista)', items: DATA.entrevistaItems },
   ], 'green');
-  
+
   buildRNCTable('rnc-body-eng', 'eng');
   buildRNCTable('rnc-body-krm', 'krm');
   buildBlocos('bloco-header-eng', 'bloco-body-eng', 'var(--eng)');
@@ -905,6 +1048,14 @@ function init() {
   buildAudit('audit-eng', DATA.auditEng);
   buildAudit('audit-krm', DATA.auditKrm);
   buildRegs('reg-body');
+
+  // Adicionar data-tipo nos botões para restauração
+  document.querySelectorAll('.btn-conf').forEach(b => b.dataset.tipo = 'conf');
+  document.querySelectorAll('.btn-nc').forEach(b => b.dataset.tipo = 'nc');
+  document.querySelectorAll('.btn-na').forEach(b => b.dataset.tipo = 'na');
+
+  restaurarLocal();
+  ativarAutoSave();
   updateProgress();
 }
 
